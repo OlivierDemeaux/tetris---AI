@@ -1,4 +1,22 @@
-This is a tetris game made with pygame and a neural network AI that learns to play the game throught a genetic algorith.
+# Tetris Game and AI Neural Network that  plays the game and learns throught genetic algorithm
+
+This is a tetris game made with pygame and a neural network AI that learns to play the game throught a genetic algorith, getting better at the game generations after generations.
+
+## Installation
+
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install pygame, deepcopy and numpy.
+
+ex:
+```bash
+pip install pygame
+```
+
+## Usage
+
+To start the game and play Tetris, do 'python main.py' in the 'tetris---AI' folder.
+To start the Neural Network and look at the AI learning process, do 'python main.py' in the 'tetris---AI/ai' folder.
+
+## Notes
 
 I did this project after seeing a video about it on youtube.
 
