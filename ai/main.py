@@ -216,7 +216,7 @@ class Game:
 		self.board = [[0 for i in range(10)] for j in range(20)]
 		self.level = 1
 		self.lines = 0
-		self.fps = 150
+		# self.fps = 150
 		self.instructions = []
 
 	def draw(self):
@@ -443,11 +443,11 @@ def run():
 			NextShape(game)
 			shape = Shape(game, random.randint(1,7))
 			game.instructions = calculateBig4(game, ai, shape)
-			clock = pygame.time.Clock()
+			# clock = pygame.time.Clock()
 			
 			while (not game.gameOver):
 
-				clock.tick(game.fps)
+				# clock.tick(game.fps)
 				game.draw()
 				reached = False
 
