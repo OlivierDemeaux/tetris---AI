@@ -189,7 +189,6 @@ class Ai:
 	def mutate(self):
 		for i in range(len(self.weights)):
 			if (random.randint(1, 100) <=  1):
-				print('salut')
 				self.weights[i] += random.uniform(-0.01, 0.01)
 
 	def reset(self):
@@ -396,13 +395,6 @@ def calculateBig4(game, ai, shape):
 		while (i > direction):
 			instructions.append('right')
 			i -= 1
-	# print(game.newShape)
-	# print(totalResults[index])
-	# print(totalResults)
-	# print('index = ', index)
-	# print('turn = ', turns)
-	# print(instructions)
-	# # quit()
 	return (instructions)
 
 def selectParent(ais, fitnessSum):
@@ -500,7 +492,6 @@ def run():
 					checkCompletedLine(game, ai)
 			ai.score = game.score
 			ai.fitness = ai.linesFilled * 50 + game.score
-			print(ai.fitness)
 
 		fitnessSum = getFitnessSum(ais)
 		children = []
