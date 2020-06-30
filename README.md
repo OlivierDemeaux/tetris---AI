@@ -14,6 +14,7 @@ pip install pygame
 ## Usage
 
 To start the game and play Tetris, do 'python main.py' in the 'tetris---AI' folder.
+
 To start the Neural Network and look at the AI learning process, do 'python main.py' in the 'tetris---AI/ai' folder.
 
 ## Notes
