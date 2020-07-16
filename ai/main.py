@@ -17,12 +17,13 @@ BLACK = (0, 0, 0)
 cubeSize = 40
 STAT_FONT = pygame.font.SysFont("comicsans", 50)
 
-
+# Where the neural network actually calculates the value of a potential move
 def neuralNetwork(data, weights, game):
 	
 	results = np.dot(data, weights[0].T)
 	return (results)
 
+# NextShape class. This is the comming tetris piece, not the current one dropping down
 class NextShape:
 	def __init__(self, game):
 		game.nextShapeNum = random.randint(1,7)
@@ -56,12 +57,14 @@ class NextShape:
 			if elem in game.grid:
 				game.gameOver = True
 
+# Current tetris shape dropping on the board. This is the piece that the neural network is calculating the best move for.
 class Shape:
 	def __init__(self, game, num):
 		self.num = num
 		self.color = (0, 0, 0)
 		self.initShape(self.num, game)
 
+	# randomly makes a new piece from the 7 tetris classical pieces
 	def initShape(self, num, game):
 		if (len(game.newShape) != 0):
 			del game.newShape[:]
@@ -108,6 +111,8 @@ class Shape:
 			game.newShape[3][0] = game.newShape[3][0] + moves[4]
 			game.newShape[3][1] = game.newShape[3][1] + moves[5]
 
+	# All the logic to make a piece rotate mid air. I couldn't find a way to improve the code but i'm sure there is a way to factorize
+	# the code and make it more efficient and faster
 	def rotate(self, game):
 		if (game.newShapeColor == CYAN):
 			if (game.newShape[0][1] > game.newShape[1][1]):
@@ -172,6 +177,7 @@ class Shape:
 			else:
 				self.rotatePiece(game, [1, 1, -1, 1, -2, 0])
 
+# Ai class. Creates the 4 weights for the NN. Weights are random from -1 to 1.
 class Ai:
 	def __init__(self, layer):
 		self.weights = self.initWeights(layer)
@@ -181,20 +187,18 @@ class Ai:
 
 	def initWeights(self, layer):
 		theta = np.random.uniform(-1, 1, [1, layer])
-		# theta = np.array([-0.510066, 0.760666, -0.45663, -0.10483])
 		weights = []
 		weights.append(theta)
 		return (weights)
 
 	def mutate(self):
 		for i in range(len(self.weights)):
-			if (random.randint(1, 100) <=  1):
+			if (random.randint(1, 100) <=  25):
 				self.weights[i] += random.uniform(-0.01, 0.01)
 
 	def reset(self):
 		self.linesFilled = 0
 		self.fitness = 0
-			
 
 class Game:
 	def __init__(self):
@@ -213,19 +217,19 @@ class Game:
 		self.grid = []
 		self.colors = [['' for i in range(10)] for j in range(20)]
 		self.board = [[0 for i in range(10)] for j in range(20)]
-		self.level = 1
 		self.lines = 0
-		# self.fps = 150
 		self.instructions = []
 
-	def draw(self):
+	def draw(self, gen, indivCounter):
 		self.screen.fill((0, 0, 0))
 		score_label = STAT_FONT.render("Score: " + str(self.score),1,(255,255,255))
 		self.screen.blit(score_label, (520, 350))
-		level_label = STAT_FONT.render("Level: " + str(self.level),1,(255,255,255))
-		self.screen.blit(level_label, (520, 250))
 		lines_label = STAT_FONT.render("Lines: " + str(self.lines),1,(255,255,255))
 		self.screen.blit(lines_label, (520, 450))
+		lines_label = STAT_FONT.render("Gen: " + str(gen),1,(255,255,255))
+		self.screen.blit(lines_label, (520, 550))
+		lines_label = STAT_FONT.render("Individual: " + str(indivCounter),1,(255,255,255))
+		self.screen.blit(lines_label, (520, 650))
 		for item in self.newShape:
 			pygame.draw.rect(self.screen, self.newShapeColor, (int(item[0] * 40 + 40), int(item[1]) * 40 + 40, 40, 40))
 			pygame.draw.rect(self.screen, BLACK, (int(item[0] * 40 + 40), int(item[1]) * 40 + 40, 40, 40), 1)
@@ -242,6 +246,8 @@ class Game:
 			self.screen.blit(gameOver_label, (350, 350))
 		pygame.display.flip()
 
+# Function called to check if the new piece just added to the board fills a line. If it does, that line is removed from the board and all the cubes
+# above that line drop down a square
 def checkCompletedLine(game, ai):
 	linesCompleted = 0
 	i = 19
@@ -268,9 +274,7 @@ def checkCompletedLine(game, ai):
 
 	game.score += linesCompleted * 50 + 5
 	game.lines += linesCompleted
-	if (game.score / game.level > 100):
-		game.level += 1
-
+	
 def calculateAggregate(potentialGrid):
 
 	aggregate = 0
@@ -324,6 +328,7 @@ def calculateBig4(game, ai, shape):
 	allValues = []
 	allMoves = []
 
+	# In range 4 to flip the piece 4 times and try it on the board under every possible sides
 	for _ in range(4):
 		for i in range(len(game.board[0])):
 			reachedLeft = False
@@ -373,13 +378,16 @@ def calculateBig4(game, ai, shape):
 
 	totalResults = []
 	for elem in allValues:
+		# Feed each group of 4 results to the NN
 		result = neuralNetwork(elem, ai.weights, game)
 		totalResults.append(result)
 
+	# Get the index of the most optimal move
 	index = totalResults.index(max(totalResults))
 	commands = allMoves[index]
 	turns = index // 10
 	direction = commands[0] - commands[1]
+	#Create the instructions to move the piece to the most optimal place
 	instructions = []
 	i = 0
 	while(i < turns):
@@ -427,20 +435,24 @@ def run():
 	generation = 1
 
 	while (not stop):
-
+		indivCounter = 0
 		for ai in ais:
+			indivCounter += 1
 			game = Game()
 			ai.reset()
 			
+			# Initialize a new shape that will come after that the current shape is settled
 			NextShape(game)
 			shape = Shape(game, random.randint(1,7))
+
+			# The big 4 are the bumpiness, the number of holes, the number of line completed and the aggregate height of a potential move.
+			# The calculateBig4 function calculate those 4 values of every possible move from the new piece onto the board and feed those values
+			# to the NN. The highest value out of the NN is the most optimal move according to the NN.
 			game.instructions = calculateBig4(game, ai, shape)
-			# clock = pygame.time.Clock()
 			
 			while (not game.gameOver):
 
-				# clock.tick(game.fps)
-				game.draw()
+				game.draw(generation, indivCounter)
 				reached = False
 
 				# Check if reaching already existing piece or if reaching end of board
@@ -458,6 +470,7 @@ def run():
 						quit()
 						break
 				
+				# Go throught the instructions made by the Neural Network and move the piece to the place decided.
 				if (len(game.instructions) > 0):
 					if (game.instructions[0] == 'left'):
 						validMove = True
@@ -479,7 +492,7 @@ def run():
 						shape.rotate(game)
 					del game.instructions[:1]
 
-				# If reached, register the new shape as an now elem of the board and create a new shape
+				# If reached, register the new shape as a new elem of the board and create a new shape
 				if (reached == True):
 					for elem in game.newShape:
 						game.grid.append(elem)
@@ -490,6 +503,7 @@ def run():
 					NextShape(game)
 					game.instructions = calculateBig4(game, ai, shape)
 					checkCompletedLine(game, ai)
+			# Save the ai score and calculate ai fitness
 			ai.score = game.score
 			ai.fitness = ai.linesFilled * 50 + game.score
 
@@ -500,11 +514,12 @@ def run():
 			parentB = selectParent(ais, fitnessSum)
 			child = deepcopy(parentA)
 			child.weights =  mixWeights(parentA.weights, parentB.weights)
-			if (random.randint(1, 100) <= 20):
+			if (random.randint(1, 100) <= 40):
 				child.mutate()
 			children.append(child)
 		ais.sort(key=lambda x: x.fitness, reverse=True)
 		print('Gen: {}, Fit: {}, Lines: {}, Score: {}'.format(generation, ais[0].fitness, ais[0].linesFilled, ais[0].score))
+		print(ais[0].weights)
 		ais = [ais[0]] + children
 		generation += 1
 
